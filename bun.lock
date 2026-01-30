@@ -1,0 +1,24 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "@frenchtoasters/groundcontrol",
+      "dependencies": {
+        "@opencode-ai/plugin": "^1.0.0",
+      },
+      "devDependencies": {
+        "typescript": "^5.4.0",
+      },
+    },
+  },
+  "packages": {
+    "@opencode-ai/plugin": ["@opencode-ai/plugin@1.1.46", "", { "dependencies": { "@opencode-ai/sdk": "1.1.46", "zod": "4.1.8" } }, "sha512-PZi/WUvXLzFXrnUYM1KTjCF4FBzSVvozsVy1Xh3pF5bmwdWi2owq426+mZrvjjmH5lbJ0jQUTRHdWpxIIqK3xA=="],
+
+    "@opencode-ai/sdk": ["@opencode-ai/sdk@1.1.46", "", {}, "sha512-MiOKdsJWNfcn4rr8dOI9a+lz6W2Bn6NAC8WlTXLn8RHp9iYS/shlMY5u/pJgNTKSr0Ego4CRGqeJd2o7BAgdPg=="],
+
+    "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "zod": ["zod@4.1.8", "", {}, "sha512-5R1P+WwQqmmMIEACyzSvo4JXHY5WiAFHRMg+zBZKgKS+Q1viRa0C1hmUKtHltoIFKtIdki3pRxkmpP74jnNYHQ=="],
+  }
+}
