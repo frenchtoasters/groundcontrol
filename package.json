@@ -23,6 +23,7 @@
     "unzipper": "^0.12.1"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "@types/tar": "^6.1.13",
     "@types/unzipper": "^0.10.11",
     "typescript": "^5.4.0"
