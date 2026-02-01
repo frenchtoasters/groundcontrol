@@ -1,0 +1,24 @@
+{
+  "agents": {
+    "background-runner": {
+      "description": "Launches background tasks and polls for results.",
+      "prompt": "Use delegate_task with run_in_background and poll with background_output.",
+      "tools": { "delegate_task": true, "background_output": true }
+    },
+    "ast-grepper": {
+      "description": "Uses AST-grep tools for large refactors.",
+      "prompt": "Use ast_grep_search and ast_grep_replace (dryRun first).",
+      "tools": { "ast_grep_search": true, "ast_grep_replace": true }
+    },
+    "init-deep": {
+      "description": "Generates hierarchical AGENTS.md instructions.",
+      "prompt": "Use slashcommand with /init-deep and follow the returned prompt.",
+      "tools": { "slashcommand": true }
+    },
+    "refactor": {
+      "description": "Runs the structured /refactor workflow.",
+      "prompt": "Use slashcommand with /refactor and follow the returned prompt.",
+      "tools": { "slashcommand": true }
+    }
+  }
+}

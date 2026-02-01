@@ -1,5 +1,5 @@
 {
-  "name": "@frenchtoasters/groundcontrol",
+  "name": "@frenchtoastman/groundcontrol",
   "version": "0.1.0",
   "description": "OpenCode plugin that enforces provider allowlists and auto-exports sessions.",
   "type": "module",
@@ -16,7 +16,11 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@opencode-ai/plugin": "^1.0.0"
+    "@ast-grep/cli": "^0.40.0",
+    "@code-yeongyu/comment-checker": "^0.4.1",
+    "@opencode-ai/plugin": "^1.0.0",
+    "tar": "^6.2.0",
+    "unzipper": "^0.12.1"
   },
   "devDependencies": {
     "typescript": "^5.4.0"
