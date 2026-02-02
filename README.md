@@ -44,7 +44,7 @@ On first run, the plugin creates `~/.config/opencode/groundcontrol.json` with de
 ```json
 {
   "sessionLogPath": "~/.opencode/groundcontrol-sessions/",
-  "allowedProviders": ["amazon-bedrock", "openai"],
+  "allowedProviders": [],
   "features": {
     "backgroundAgents": { "enabled": true, "pollIntervalMs": 2000, "maxPolls": 300 }
   },
@@ -73,8 +73,15 @@ Folder where Markdown exports are stored. Each session saves as `<sessionId>.md`
 
 ### allowedProviders
 
-Allowlist used to validate the `allowed-providers` list in your `opencode.json`. If any provider
-in `allowed-providers` is not included here, OpenCode startup is blocked with a clear error.
+Optional allowlist to validate the `enabled_providers` list in your `opencode.json`. **Disabled
+by default** (empty array). When populated, any provider in `enabled_providers` not in this list
+blocks OpenCode startup with a clear error.
+
+To enable provider enforcement, add the providers you want to allow:
+
+```json
+"allowedProviders": ["amazon-bedrock", "openai", "anthropic"]
+```
 
 ## Slash commands in opencode.json
 

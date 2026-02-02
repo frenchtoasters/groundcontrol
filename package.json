@@ -1,6 +1,6 @@
 {
   "name": "@frenchtoastman/groundcontrol",
-  "version": "0.1.0",
+  "version": "0.1.9",
   "description": "OpenCode plugin that enforces provider allowlists and auto-exports sessions.",
   "type": "module",
   "main": "./dist/index.js",
@@ -16,13 +16,12 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@ast-grep/cli": "^0.40.0",
-    "@code-yeongyu/comment-checker": "^0.4.1",
     "@opencode-ai/plugin": "^1.0.0",
     "tar": "^6.2.0",
     "unzipper": "^0.12.1"
   },
   "devDependencies": {
+    "@opencode-ai/sdk": "1.1.48",
     "@types/node": "^20.0.0",
     "@types/tar": "^6.1.13",
     "@types/unzipper": "^0.10.11",

@@ -1,11 +1,11 @@
 import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { homedir } from "node:os"
-import { createRequire } from "node:module"
 import { ensureDownloadedBinary } from "../../utils/binary-downloader.js"
 import { log } from "../../utils/logger.js"
 
 const REPO = "code-yeongyu/go-claude-code-comment-checker"
+const COMMENT_CHECKER_VERSION = "0.4.1"
 
 interface PlatformInfo {
   os: string
@@ -37,16 +37,6 @@ const getBinaryName = (): string => {
   return process.platform === "win32" ? "comment-checker.exe" : "comment-checker"
 }
 
-const getPackageVersion = (): string => {
-  try {
-    const require = createRequire(import.meta.url)
-    const pkg = require("@code-yeongyu/comment-checker/package.json")
-    return pkg.version
-  } catch {
-    return "0.4.1"
-  }
-}
-
 export const ensureCommentCheckerBinary = async (): Promise<string | null> => {
   const cacheDir = getCacheDir()
   const binaryName = getBinaryName()
@@ -63,9 +53,10 @@ export const ensureCommentCheckerBinary = async (): Promise<string | null> => {
     return null
   }
 
-  const version = getPackageVersion()
-  const assetName = `comment-checker_v${version}_${platformInfo.os}_${platformInfo.arch}.${platformInfo.ext}`
-  const downloadUrl = `https://github.com/${REPO}/releases/download/v${version}/${assetName}`
+  const assetName =
+    `comment-checker_v${COMMENT_CHECKER_VERSION}_${platformInfo.os}_${platformInfo.arch}.${platformInfo.ext}`
+  const downloadUrl =
+    `https://github.com/${REPO}/releases/download/v${COMMENT_CHECKER_VERSION}/${assetName}`
 
   try {
     return await ensureDownloadedBinary({

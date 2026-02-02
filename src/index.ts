@@ -1,7 +1,9 @@
 import fs from "node:fs/promises"
 import path from "node:path"
+import type { Plugin } from "@opencode-ai/plugin"
 import type { GroundcontrolConfig } from "./config.js"
 import {
+  evaluateAllowedProviders,
   enforceAllowedProviders,
   loadGroundcontrolConfig,
   loadOpencodeConfig,
@@ -28,34 +30,10 @@ import { formatMessageLines, resolveSessionId } from "./utils/session.js"
 import { loadBuiltinCommands } from "./commands/index.js"
 import { createSlashCommandTool } from "./commands/slashcommand-tool.js"
 
-type PluginContext = {
-  client: {
-    app: {
-      log?: (args: {
-        body: {
-          service: string
-          level: "debug" | "info" | "warn" | "error"
-          message: string
-          extra?: Record<string, unknown>
-        }
-      }) => Promise<unknown>
-      toast?: (message: string) => void
-    }
-    session: {
-      create: (args: unknown) => Promise<unknown>
-      prompt: (args: unknown) => Promise<unknown>
-      messages: (args: { path: { id: string } }) => Promise<{ data?: unknown }>
-      status?: (args: unknown) => Promise<{ data?: { status?: string } }>
-      abort?: (args: unknown) => Promise<unknown>
-    }
-  }
-  worktree?: string
-}
-
 const SERVICE_NAME = "groundcontrol"
 
 const renderSessionMarkdown = async (
-  client: PluginContext["client"],
+  client: Parameters<Plugin>[0]["client"],
   sessionId: string,
 ): Promise<string> => {
   const response = await client.session.messages({ path: { id: sessionId } })
@@ -84,7 +62,7 @@ const composeHook = (handlers: Array<(input: any, ctx?: any) => Promise<void>>) 
 const buildTools = (
   config: GroundcontrolConfig,
   manager: BackgroundTaskManager,
-  client: PluginContext["client"],
+  client: Parameters<Plugin>[0]["client"],
 ): Record<string, unknown> => {
   const tools: Record<string, unknown> = {}
 
@@ -105,15 +83,76 @@ const buildTools = (
   return tools
 }
 
-export const Groundcontrol = async ({ client, worktree }: PluginContext) => {
-  const config = await loadGroundcontrolConfig()
-  const opencodeConfig = await loadOpencodeConfig(worktree ?? process.cwd())
-  enforceAllowedProviders(opencodeConfig["allowed-providers"], config.allowedProviders)
+export const Groundcontrol: Plugin = async ({ client, worktree }) => {
+  let config: GroundcontrolConfig
+  let opencodeConfig: Record<string, unknown>
+
+  try {
+    config = await loadGroundcontrolConfig()
+  } catch (error) {
+    void client.app.log?.({
+      body: {
+        service: SERVICE_NAME,
+        level: "error",
+        message: "Failed to load groundcontrol config",
+        extra: { error: error instanceof Error ? error.message : String(error) },
+      },
+    })
+    throw error
+  }
+
+  try {
+    opencodeConfig = await loadOpencodeConfig(worktree ?? process.cwd())
+  } catch (error) {
+    void client.app.log?.({
+      body: {
+        service: SERVICE_NAME,
+        level: "error",
+        message: "Failed to load opencode config",
+        extra: { error: error instanceof Error ? error.message : String(error) },
+      },
+    })
+    throw error
+  }
+
+  const providerDecision = evaluateAllowedProviders(
+    opencodeConfig["enabled_providers"],
+    config.allowedProviders,
+  )
+
+  void client.app.log?.({
+    body: {
+      service: SERVICE_NAME,
+      level: "info",
+      message: "Provider allowlist check",
+      extra: {
+        status: providerDecision.status,
+        reason: providerDecision.reason,
+        enabledProviders: providerDecision.configuredProviders,
+        allowedProviders: providerDecision.allowedProviders,
+        disallowedProviders: providerDecision.disallowedProviders,
+      },
+    },
+  })
+
+  try {
+    enforceAllowedProviders(opencodeConfig["enabled_providers"], config.allowedProviders)
+  } catch (error) {
+    void client.app.log?.({
+      body: {
+        service: SERVICE_NAME,
+        level: "error",
+        message: "Provider enforcement failed",
+        extra: { error: error instanceof Error ? error.message : String(error) },
+      },
+    })
+    throw error
+  }
 
   const sessionLogPath = resolveSessionLogPath(config.sessionLogPath)
   await ensureDirectory(sessionLogPath)
 
-  await client.app.log?.({
+  void client.app.log?.({
     body: {
       service: SERVICE_NAME,
       level: "info",
@@ -173,7 +212,7 @@ export const Groundcontrol = async ({ client, worktree }: PluginContext) => {
       const outputPath = path.join(sessionLogPath, `${sessionId}.md`)
       await fs.writeFile(outputPath, markdown, "utf8")
     } catch (error) {
-      await client.app.log?.({
+      void client.app.log?.({
         body: {
           service: SERVICE_NAME,
           level: "warn",

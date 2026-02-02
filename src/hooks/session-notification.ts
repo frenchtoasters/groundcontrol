@@ -20,6 +20,9 @@ type NotificationConfig = {
   sound: boolean
 }
 
+const NOTIFY_TIMEOUT_MS = 5_000
+const SOUND_TIMEOUT_MS = 5_000
+
 const notify = async (title: string, message: string): Promise<void> => {
   if (process.platform === "darwin") {
     const osascript = await getOsascriptPath()
@@ -27,7 +30,9 @@ const notify = async (title: string, message: string): Promise<void> => {
     await spawnWithTimeout(osascript, [
       "-e",
       `display notification \"${message.replace(/"/g, "\\\"")}\" with title \"${title.replace(/"/g, "\\\"")}\"`,
-    ])
+    ], {
+      timeoutMs: NOTIFY_TIMEOUT_MS,
+    })
     return
   }
 
@@ -37,30 +42,40 @@ const notify = async (title: string, message: string): Promise<void> => {
     await spawnWithTimeout(powershell, [
       "-Command",
       `New-BurntToastNotification -Text '${title.replace(/'/g, "''")}', '${message.replace(/'/g, "''")}'`,
-    ])
+    ], {
+      timeoutMs: NOTIFY_TIMEOUT_MS,
+    })
     return
   }
 
   const notifySend = await getNotifySendPath()
   if (notifySend) {
-    await spawnWithTimeout(notifySend, [title, message])
+    await spawnWithTimeout(notifySend, [title, message], {
+      timeoutMs: NOTIFY_TIMEOUT_MS,
+    })
   }
 }
 
 const playSound = async (): Promise<void> => {
   const afplay = await getAfplayPath()
   if (afplay) {
-    await spawnWithTimeout(afplay, ["/System/Library/Sounds/Glass.aiff"]) 
+    await spawnWithTimeout(afplay, ["/System/Library/Sounds/Glass.aiff"], {
+      timeoutMs: SOUND_TIMEOUT_MS,
+    })
     return
   }
   const paplay = await getPaplayPath()
   if (paplay) {
-    await spawnWithTimeout(paplay, ["/usr/share/sounds/freedesktop/stereo/complete.oga"]) 
+    await spawnWithTimeout(paplay, ["/usr/share/sounds/freedesktop/stereo/complete.oga"], {
+      timeoutMs: SOUND_TIMEOUT_MS,
+    })
     return
   }
   const aplay = await getAplayPath()
   if (aplay) {
-    await spawnWithTimeout(aplay, ["/usr/share/sounds/alsa/Front_Center.wav"]) 
+    await spawnWithTimeout(aplay, ["/usr/share/sounds/alsa/Front_Center.wav"], {
+      timeoutMs: SOUND_TIMEOUT_MS,
+    })
   }
 }
 

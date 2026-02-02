@@ -44,11 +44,19 @@ export type GroundcontrolConfig = {
   }
 }
 
+export type ProviderEnforcementResult = {
+  status: "skipped" | "allowed" | "blocked"
+  reason: string
+  configuredProviders: string[]
+  allowedProviders: string[]
+  disallowedProviders: string[]
+}
+
 const CONFIG_FILENAME = "groundcontrol.json"
 
 export const DEFAULT_CONFIG: GroundcontrolConfig = {
   sessionLogPath: "~/.opencode/groundcontrol-sessions/",
-  allowedProviders: ["amazon-bedrock", "openai"],
+  allowedProviders: [],
   features: {
     backgroundAgents: {
       enabled: true,
@@ -106,6 +114,15 @@ const normalizeStringArray = (value: unknown, fallback: string[]): string[] => {
     if (items.length > 0) return items
   }
   return [...fallback]
+}
+
+const normalizeProviderList = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
 }
 
 const mergeFeatureToggle = (
@@ -242,25 +259,68 @@ export const loadOpencodeConfig = async (worktree: string): Promise<Record<strin
 export const enforceAllowedProviders = (
   configuredProviders: unknown,
   allowedProviders: string[],
-): void => {
-  if (!Array.isArray(configuredProviders)) {
-    return
+): ProviderEnforcementResult => {
+  const decision = evaluateAllowedProviders(configuredProviders, allowedProviders)
+
+  if (decision.status !== "blocked") {
+    return decision
   }
 
-  const disallowed = configuredProviders.filter(
-    (provider): provider is string =>
-      typeof provider === "string" && !allowedProviders.includes(provider),
+  const list = decision.disallowedProviders.join(", ")
+  throw new Error(
+    `Groundcontrol blocked OpenCode startup: ${list} not in groundcontrol allowedProviders. ` +
+      `Update ~/.config/opencode/${CONFIG_FILENAME} or opencode.json enabled_providers.`,
+  )
+}
+
+export const evaluateAllowedProviders = (
+  configuredProviders: unknown,
+  allowedProviders: string[],
+): ProviderEnforcementResult => {
+  const normalizedAllowed = normalizeProviderList(allowedProviders)
+  const normalizedConfigured = normalizeProviderList(configuredProviders)
+
+  if (normalizedAllowed.length === 0) {
+    return {
+      status: "skipped",
+      reason: "allowedProviders empty or not set",
+      configuredProviders: normalizedConfigured,
+      allowedProviders: normalizedAllowed,
+      disallowedProviders: [],
+    }
+  }
+
+  if (normalizedConfigured.length === 0) {
+    return {
+      status: "skipped",
+      reason: "enabled_providers empty or not set",
+      configuredProviders: normalizedConfigured,
+      allowedProviders: normalizedAllowed,
+      disallowedProviders: [],
+    }
+  }
+
+  const disallowed = normalizedConfigured.filter(
+    (provider) => !normalizedAllowed.includes(provider),
   )
 
   if (disallowed.length === 0) {
-    return
+    return {
+      status: "allowed",
+      reason: "enabled_providers within allowedProviders",
+      configuredProviders: normalizedConfigured,
+      allowedProviders: normalizedAllowed,
+      disallowedProviders: [],
+    }
   }
 
-  const list = disallowed.join(", ")
-  throw new Error(
-    `Groundcontrol blocked OpenCode startup: ${list} not in groundcontrol allowedProviders. ` +
-      `Update ~/.config/opencode/${CONFIG_FILENAME} or opencode.json allowed-providers.`,
-  )
+  return {
+    status: "blocked",
+    reason: "enabled_providers contains disallowed providers",
+    configuredProviders: normalizedConfigured,
+    allowedProviders: normalizedAllowed,
+    disallowedProviders: disallowed,
+  }
 }
 
 export const resolveSessionLogPath = (value: string): string => {

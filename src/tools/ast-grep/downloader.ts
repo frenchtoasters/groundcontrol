@@ -1,11 +1,11 @@
 import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { homedir } from "node:os"
-import { createRequire } from "node:module"
 import { ensureDownloadedBinary } from "../../utils/binary-downloader.js"
 import { log } from "../../utils/logger.js"
 
 const REPO = "ast-grep/ast-grep"
+const AST_GREP_VERSION = "0.40.0"
 
 interface PlatformInfo {
   os: string
@@ -37,16 +37,6 @@ const getBinaryName = (): string => {
   return process.platform === "win32" ? "sg.exe" : "sg"
 }
 
-const getPackageVersion = (): string => {
-  try {
-    const require = createRequire(import.meta.url)
-    const pkg = require("@ast-grep/cli/package.json")
-    return pkg.version
-  } catch {
-    return "0.40.0"
-  }
-}
-
 export const ensureAstGrepBinary = async (): Promise<string | null> => {
   const cacheDir = getCacheDir()
   const binaryName = getBinaryName()
@@ -63,9 +53,8 @@ export const ensureAstGrepBinary = async (): Promise<string | null> => {
     return null
   }
 
-  const version = getPackageVersion()
   const assetName = `app-${platformInfo.arch}-${platformInfo.os}.${platformInfo.ext}`
-  const downloadUrl = `https://github.com/${REPO}/releases/download/${version}/${assetName}`
+  const downloadUrl = `https://github.com/${REPO}/releases/download/${AST_GREP_VERSION}/${assetName}`
 
   try {
     return await ensureDownloadedBinary({
