@@ -1,6 +1,6 @@
 {
   "name": "@frenchtoastman/groundcontrol",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "OpenCode plugin that enforces provider allowlists and auto-exports sessions.",
   "type": "module",
   "main": "./dist/index.js",
