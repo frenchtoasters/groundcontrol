@@ -1,4 +1,4 @@
-import { tool } from "@opencode-ai/plugin/tool"
+import { tool } from "@opencode-ai/plugin"
 import type { GroundcontrolConfig } from "../../config.js"
 import { runSg } from "./cli.js"
 import { CLI_LANGUAGES } from "./constants.js"

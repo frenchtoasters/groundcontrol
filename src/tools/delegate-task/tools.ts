@@ -1,4 +1,4 @@
-import { tool, type ToolDefinition } from "@opencode-ai/plugin/tool"
+import { tool, type ToolDefinition } from "@opencode-ai/plugin"
 import type { GroundcontrolConfig } from "../../config.js"
 import type { BackgroundTaskManager } from "../../background/manager.js"
 import { formatMessageLines } from "../../utils/session.js"

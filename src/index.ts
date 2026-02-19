@@ -25,6 +25,7 @@ import {
   createSessionSaverHook,
   createTaskResumeInfoHook,
 } from "./hooks/index.js"
+import { loadBuiltinCommands, writeCommandFiles } from "./commands/index.js"
 import { ensureDirectory } from "./utils/fs.js"
 
 const SERVICE_NAME = "groundcontrol"
@@ -126,6 +127,22 @@ export const Groundcontrol: Plugin = async ({ client, worktree }) => {
 
   const sessionLogPath = resolveSessionLogPath(config.sessionLogPath)
   await ensureDirectory(sessionLogPath)
+
+  // Write command markdown files to ~/.config/opencode/commands/
+  // This is the documented mechanism for registering slash commands with OpenCode
+  const builtinCommands = loadBuiltinCommands(config)
+  try {
+    await writeCommandFiles(builtinCommands)
+  } catch (error) {
+    void client.app.log?.({
+      body: {
+        service: SERVICE_NAME,
+        level: "warn",
+        message: "Failed to write command files",
+        extra: { error: error instanceof Error ? error.message : String(error) },
+      },
+    })
+  }
 
   void client.app.log?.({
     body: {

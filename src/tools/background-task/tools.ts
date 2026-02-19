@@ -1,4 +1,4 @@
-import { tool, type ToolDefinition } from "@opencode-ai/plugin/tool"
+import { tool, type ToolDefinition } from "@opencode-ai/plugin"
 import type { BackgroundTaskManager } from "../../background/manager.js"
 
 export const createBackgroundTaskTool = (manager: BackgroundTaskManager): ToolDefinition => {
