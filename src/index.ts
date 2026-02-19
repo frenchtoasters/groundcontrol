@@ -1,5 +1,3 @@
-import fs from "node:fs/promises"
-import path from "node:path"
 import type { Plugin } from "@opencode-ai/plugin"
 import type { GroundcontrolConfig } from "./config.js"
 import {
@@ -19,37 +17,17 @@ import {
 } from "./tools/index.js"
 import {
   createCommentCheckerHooks,
+  createConfigHook,
   createDelegateTaskRetryHook,
   createDirectoryAgentsInjectorHook,
   createKeywordDetectorHook,
   createSessionNotification,
+  createSessionSaverHook,
   createTaskResumeInfoHook,
 } from "./hooks/index.js"
 import { ensureDirectory } from "./utils/fs.js"
-import { formatMessageLines, resolveSessionId } from "./utils/session.js"
-import { loadBuiltinCommands } from "./commands/index.js"
-import { createSlashCommandTool } from "./commands/slashcommand-tool.js"
 
 const SERVICE_NAME = "groundcontrol"
-
-const renderSessionMarkdown = async (
-  client: Parameters<Plugin>[0]["client"],
-  sessionId: string,
-): Promise<string> => {
-  const response = await client.session.messages({ path: { id: sessionId } })
-  const entries = (response as { data?: unknown }).data ?? response
-
-  if (!Array.isArray(entries)) {
-    return ""
-  }
-
-  const lines: string[] = []
-  for (const entry of entries) {
-    lines.push(formatMessageLines(entry as { info?: { role?: string } }))
-    lines.push("")
-  }
-  return `${lines.join("\n")}\n`
-}
 
 const composeHook = (handlers: Array<(input: any, ctx?: any) => Promise<void>>) => {
   return async (input: any, ctx?: any): Promise<void> => {
@@ -76,9 +54,6 @@ const buildTools = (
     tools.background_output = createBackgroundOutputTool(manager)
     tools.background_cancel = createBackgroundCancelTool(manager)
   }
-
-  const commands = loadBuiltinCommands(config)
-  tools.slashcommand = createSlashCommandTool(commands)
 
   return tools
 }
@@ -164,6 +139,8 @@ export const Groundcontrol: Plugin = async ({ client, worktree }) => {
   const manager = new BackgroundTaskManager(client as any, config)
   const tools = buildTools(config, manager, client as any)
 
+  // --- tool.execute.before / tool.execute.after hooks ---
+
   const hooksBefore: Array<(input: any, ctx?: any) => Promise<void>> = []
   const hooksAfter: Array<(input: any, ctx?: any) => Promise<void>> = []
 
@@ -192,44 +169,44 @@ export const Groundcontrol: Plugin = async ({ client, worktree }) => {
     hooksAfter.push(agentsInjectorHooks["tool.execute.after"])
   }
 
+  // --- chat.message hook ---
+
   const keywordHook = config.hooks.keywordDetector.enabled
     ? createKeywordDetectorHook({ subagentSessions: manager.getSubagentSessions() })
     : undefined
 
-  const sessionNotificationHook = config.hooks.sessionNotification.enabled
-    ? createSessionNotification({
-        idleDelayMs: config.hooks.sessionNotification.idleDelayMs,
-        sound: config.hooks.sessionNotification.sound,
-      })
-    : undefined
+  // --- config hook (registers slash commands) ---
 
-  const saveSession = async (input: Record<string, unknown>) => {
-    const sessionId = resolveSessionId(input)
-    if (!sessionId) return
+  const configHook = createConfigHook(config)
 
-    try {
-      const markdown = await renderSessionMarkdown(client, sessionId)
-      const outputPath = path.join(sessionLogPath, `${sessionId}.md`)
-      await fs.writeFile(outputPath, markdown, "utf8")
-    } catch (error) {
-      void client.app.log?.({
-        body: {
-          service: SERVICE_NAME,
-          level: "warn",
-          message: "Failed to export session markdown",
-          extra: { sessionId, error: (error as Error).message },
-        },
-      })
+  // --- event hook (session notification + session saver) ---
+
+  const eventHandlers: Array<(input: { event: { type: string; properties?: Record<string, unknown> } }) => Promise<void>> = []
+
+  if (config.hooks.sessionNotification.enabled) {
+    eventHandlers.push(createSessionNotification({
+      idleDelayMs: config.hooks.sessionNotification.idleDelayMs,
+      sound: config.hooks.sessionNotification.sound,
+    }) as any)
+  }
+
+  eventHandlers.push(createSessionSaverHook({
+    sessionLogPath,
+    client: client as any,
+  }) as any)
+
+  const composedEventHook = async (input: { event: { type: string; properties?: Record<string, unknown> } }): Promise<void> => {
+    for (const handler of eventHandlers) {
+      await handler(input)
     }
   }
 
   return {
     tool: tools,
+    config: configHook,
     "chat.message": keywordHook,
-    event: sessionNotificationHook,
+    event: composedEventHook,
     "tool.execute.before": composeHook(hooksBefore),
     "tool.execute.after": composeHook(hooksAfter),
-    "session.idle": saveSession,
-    "session.updated": saveSession,
-  } as Record<string, unknown>
+  }
 }

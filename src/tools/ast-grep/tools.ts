@@ -1,12 +1,7 @@
+import { tool } from "@opencode-ai/plugin/tool"
 import type { GroundcontrolConfig } from "../../config.js"
 import { runSg } from "./cli.js"
 import { CLI_LANGUAGES } from "./constants.js"
-
-type ToolDefinition = {
-  description: string
-  parameters: Record<string, unknown>
-  execute: (input: Record<string, unknown>) => Promise<unknown>
-}
 
 const buildSearchResult = (result: Awaited<ReturnType<typeof runSg>>) => {
   return {
@@ -15,65 +10,60 @@ const buildSearchResult = (result: Awaited<ReturnType<typeof runSg>>) => {
   }
 }
 
-export const createAstGrepTools = (config: GroundcontrolConfig): Record<string, ToolDefinition> => {
+export const createAstGrepTools = (config: GroundcontrolConfig): Record<string, ReturnType<typeof tool>> => {
   const toolConfig = config.tools.astGrep
-  const commonParams = {
-    pattern: { type: "string" },
-    lang: { type: "string", enum: [...CLI_LANGUAGES] },
-    paths: { type: "array", items: { type: "string" } },
-    globs: { type: "array", items: { type: "string" } },
-    context: { type: "number" },
-  }
 
   return {
-    ast_grep_search: {
+    ast_grep_search: tool({
       description: "Search code patterns with AST-aware matching",
-      parameters: {
-        type: "object",
-        properties: commonParams,
-        required: ["pattern", "lang"],
+      args: {
+        pattern: tool.schema.string().describe("The search pattern (AST expression)"),
+        lang: tool.schema.enum([...CLI_LANGUAGES]).describe("Programming language"),
+        paths: tool.schema.array(tool.schema.string()).optional().describe("Paths to search (defaults to current directory)"),
+        globs: tool.schema.array(tool.schema.string()).optional().describe("File glob patterns to include"),
+        context: tool.schema.number().optional().describe("Number of context lines around matches"),
       },
-      execute: async (input) => {
+      execute: async (args) => {
         const result = await runSg({
-          pattern: String(input.pattern),
-          lang: String(input.lang),
-          paths: (input.paths as string[] | undefined) ?? ["."],
-          globs: input.globs as string[] | undefined,
-          context: input.context as number | undefined,
+          pattern: args.pattern,
+          lang: args.lang,
+          paths: args.paths ?? ["."],
+          globs: args.globs,
+          context: args.context,
           timeoutMs: toolConfig.timeoutMs,
           maxMatches: toolConfig.maxMatches,
           maxOutputBytes: toolConfig.maxOutputBytes,
         })
-        return buildSearchResult(result)
+        return JSON.stringify(buildSearchResult(result))
       },
-    },
-    ast_grep_replace: {
+    }),
+    ast_grep_replace: tool({
       description: "Replace code patterns with AST-aware rewriting",
-      parameters: {
-        type: "object",
-        properties: {
-          ...commonParams,
-          rewrite: { type: "string" },
-          dryRun: { type: "boolean" },
-        },
-        required: ["pattern", "lang", "rewrite"],
+      args: {
+        pattern: tool.schema.string().describe("The search pattern (AST expression)"),
+        lang: tool.schema.enum([...CLI_LANGUAGES]).describe("Programming language"),
+        paths: tool.schema.array(tool.schema.string()).optional().describe("Paths to search (defaults to current directory)"),
+        globs: tool.schema.array(tool.schema.string()).optional().describe("File glob patterns to include"),
+        context: tool.schema.number().optional().describe("Number of context lines around matches"),
+        rewrite: tool.schema.string().describe("The replacement pattern"),
+        dryRun: tool.schema.boolean().optional().describe("Preview changes without applying them (default: true)"),
       },
-      execute: async (input) => {
-        const dryRun = input.dryRun !== false
+      execute: async (args) => {
+        const dryRun = args.dryRun !== false
         const result = await runSg({
-          pattern: String(input.pattern),
-          lang: String(input.lang),
-          paths: (input.paths as string[] | undefined) ?? ["."],
-          globs: input.globs as string[] | undefined,
-          context: input.context as number | undefined,
-          rewrite: String(input.rewrite),
+          pattern: args.pattern,
+          lang: args.lang,
+          paths: args.paths ?? ["."],
+          globs: args.globs,
+          context: args.context,
+          rewrite: args.rewrite,
           updateAll: !dryRun,
           timeoutMs: toolConfig.timeoutMs,
           maxMatches: toolConfig.maxMatches,
           maxOutputBytes: toolConfig.maxOutputBytes,
         })
-        return { ...buildSearchResult(result), dryRun }
+        return JSON.stringify({ ...buildSearchResult(result), dryRun })
       },
-    },
+    }),
   }
 }

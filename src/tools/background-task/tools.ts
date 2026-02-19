@@ -1,70 +1,52 @@
+import { tool, type ToolDefinition } from "@opencode-ai/plugin/tool"
 import type { BackgroundTaskManager } from "../../background/manager.js"
 
-type ToolDefinition = {
-  description: string
-  parameters: Record<string, unknown>
-  execute: (input: Record<string, unknown>) => Promise<unknown>
-}
-
 export const createBackgroundTaskTool = (manager: BackgroundTaskManager): ToolDefinition => {
-  return {
+  return tool({
     description: "Launch a background task",
-    parameters: {
-      type: "object",
-      properties: {
-        description: { type: "string" },
-        prompt: { type: "string" },
-        agent: { type: "string" },
-      },
-      required: ["description", "prompt", "agent"],
+    args: {
+      description: tool.schema.string().describe("Description of the task"),
+      prompt: tool.schema.string().describe("The prompt for the task"),
+      agent: tool.schema.string().describe("The agent type to use"),
     },
-    execute: async (input) => {
+    execute: async (args) => {
       const task = await manager.launch({
-        description: String(input.description ?? ""),
-        prompt: String(input.prompt ?? ""),
-        agent: String(input.agent ?? "assistant"),
+        description: args.description,
+        prompt: args.prompt,
+        agent: args.agent,
       })
-      return {
+      return JSON.stringify({
         task_id: task.id,
         status: task.status,
         session_id: task.sessionId,
         message: "Use background_output to poll for results.",
-      }
+      })
     },
-  }
+  })
 }
 
 export const createBackgroundOutputTool = (manager: BackgroundTaskManager): ToolDefinition => {
-  return {
+  return tool({
     description: "Check background task status and output",
-    parameters: {
-      type: "object",
-      properties: {
-        task_id: { type: "string" },
-      },
-      required: ["task_id"],
+    args: {
+      task_id: tool.schema.string().describe("The task ID to check"),
     },
-    execute: async (input) => {
-      const result = await manager.getResult(String(input.task_id ?? ""))
-      return result
+    execute: async (args) => {
+      const result = await manager.getResult(args.task_id)
+      return JSON.stringify(result)
     },
-  }
+  })
 }
 
 export const createBackgroundCancelTool = (manager: BackgroundTaskManager): ToolDefinition => {
-  return {
+  return tool({
     description: "Cancel a background task",
-    parameters: {
-      type: "object",
-      properties: {
-        task_id: { type: "string" },
-      },
-      required: ["task_id"],
+    args: {
+      task_id: tool.schema.string().describe("The task ID to cancel"),
     },
-    execute: async (input) => {
-      const taskId = String(input.task_id ?? "")
-      const cancelled = await manager.cancel(taskId)
-      return { task_id: taskId, cancelled }
+    execute: async (args) => {
+      const cancelled = await manager.cancel(args.task_id)
+      return JSON.stringify({ task_id: args.task_id, cancelled })
     },
-  }
+  })
 }

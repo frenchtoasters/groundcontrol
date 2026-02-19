@@ -1,6 +1,8 @@
 export { createKeywordDetectorHook } from "./keyword-detector/index.js"
 export { createCommentCheckerHooks } from "./comment-checker/index.js"
 export { createSessionNotification } from "./session-notification.js"
+export { createSessionSaverHook } from "./session-saver.js"
+export { createConfigHook } from "./config-handler.js"
 export { createTaskResumeInfoHook } from "./task-resume-info/index.js"
 export { createDelegateTaskRetryHook } from "./delegate-task-retry/index.js"
 export { createDirectoryAgentsInjectorHook } from "./directory-agents-injector/index.js"

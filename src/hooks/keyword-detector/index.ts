@@ -1,25 +1,27 @@
 import type { KeywordDetectorState } from "./types.js"
 import { detectKeywords, getKeywordMessages } from "./detector.js"
 
-type HookInput = {
-  message?: { parts?: Array<{ type?: string; text?: string }>; variant?: string }
-  session?: { id?: string }
+type ChatMessageInput = {
+  sessionID: string
+  agent?: string
+  model?: { providerID: string; modelID: string }
+  messageID?: string
+  variant?: string
 }
 
-type HookContext = {
-  client: {
-    app?: { toast?: (message: string) => void }
-  }
+type ChatMessageOutput = {
+  message: unknown
+  parts: Array<{ type: string; text?: string; [key: string]: unknown }>
 }
 
 export const createKeywordDetectorHook = (options?: { subagentSessions?: Set<string> }) => {
   const state: KeywordDetectorState = { injected: false }
-  return async (input: HookInput, ctx?: HookContext): Promise<void> => {
-    const sessionId = input.session?.id
+  return async (input: ChatMessageInput, output: ChatMessageOutput): Promise<void> => {
+    const sessionId = input.sessionID
     if (sessionId && options?.subagentSessions?.has(sessionId)) return
-    if (!input.message?.parts || state.injected) return
+    if (!output.parts || state.injected) return
 
-    const textParts = input.message.parts
+    const textParts = output.parts
       .filter((part) => part.type === "text" && typeof part.text === "string")
       .map((part) => part.text ?? "")
       .join("\n")
@@ -30,13 +32,11 @@ export const createKeywordDetectorHook = (options?: { subagentSessions?: Set<str
     const message = getKeywordMessages(keywords).join("\n\n")
     if (!message) return
 
-    input.message.parts.unshift({ type: "text", text: message })
+    output.parts.unshift({ type: "text", text: message })
     state.injected = true
 
-    if (keywords.includes("ultrawork") && !input.message.variant) {
-      input.message.variant = "max"
+    if (keywords.includes("ultrawork") && !input.variant) {
+      input.variant = "max"
     }
-
-    ctx?.client.app?.toast?.("Groundcontrol: keyword detector injected guidance")
   }
 }

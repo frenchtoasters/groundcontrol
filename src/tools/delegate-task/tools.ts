@@ -1,12 +1,7 @@
+import { tool, type ToolDefinition } from "@opencode-ai/plugin/tool"
 import type { GroundcontrolConfig } from "../../config.js"
 import type { BackgroundTaskManager } from "../../background/manager.js"
 import { formatMessageLines } from "../../utils/session.js"
-
-type ToolDefinition = {
-  description: string
-  parameters: Record<string, unknown>
-  execute: (input: Record<string, unknown>, context?: Record<string, unknown>) => Promise<unknown>
-}
 
 type PluginClient = {
   session: {
@@ -38,28 +33,24 @@ export const createDelegateTaskTool = (
   client: PluginClient,
   _config: GroundcontrolConfig,
 ): ToolDefinition => {
-  return {
+  return tool({
     description: "Delegate a task to another agent",
-    parameters: {
-      type: "object",
-      properties: {
-        load_skills: { type: "array", items: { type: "string" } },
-        description: { type: "string" },
-        prompt: { type: "string" },
-        run_in_background: { type: "boolean" },
-        category: { type: "string" },
-        subagent_type: { type: "string" },
-        session_id: { type: "string" },
-        command: { type: "string" },
-      },
-      required: ["load_skills", "description", "prompt", "run_in_background"],
+    args: {
+      load_skills: tool.schema.array(tool.schema.string()).describe("Skills to load for the subagent"),
+      description: tool.schema.string().describe("Description of the task"),
+      prompt: tool.schema.string().describe("The prompt for the subagent"),
+      run_in_background: tool.schema.boolean().describe("Run the task in background"),
+      category: tool.schema.string().optional().describe("Agent category"),
+      subagent_type: tool.schema.string().optional().describe("Subagent type"),
+      session_id: tool.schema.string().optional().describe("Session ID to resume"),
+      command: tool.schema.string().optional().describe("Command to run"),
     },
-    execute: async (input, ctx) => {
-      const runInBackground = Boolean(input.run_in_background)
-      const sessionId = input.session_id as string | undefined
-      const prompt = String(input.prompt ?? "")
-      const description = String(input.description ?? "")
-      const agent = (input.subagent_type as string | undefined) || (input.category as string | undefined) || "assistant"
+    execute: async (args, context) => {
+      const runInBackground = args.run_in_background
+      const sessionId = args.session_id
+      const prompt = args.prompt
+      const description = args.description
+      const agent = args.subagent_type || args.category || "assistant"
 
       if (runInBackground) {
         const task = sessionId
@@ -68,27 +59,27 @@ export const createDelegateTaskTool = (
               description,
               prompt,
               agent,
-              parentSessionId: (ctx?.session as { id?: string } | undefined)?.id,
+              parentSessionId: context.sessionID,
             })
 
         if (!task) {
-          return { error: "Unable to resume background task", status: "failed" }
+          return JSON.stringify({ error: "Unable to resume background task", status: "failed" })
         }
 
-        return {
+        return JSON.stringify({
           status: task.status,
           task_id: task.id,
           session_id: task.sessionId,
           message: "Use background_output to poll for results.",
-        }
+        })
       }
 
       const response = sessionId
         ? { id: sessionId }
-        : await client.session.create({ body: { parentID: (ctx?.session as { id?: string } | undefined)?.id } })
+        : await client.session.create({ body: { parentID: context.sessionID } })
       const childSessionId = sessionId ?? resolveSessionId(response)
       if (!childSessionId) {
-        return { error: "Failed to create delegated session" }
+        return JSON.stringify({ error: "Failed to create delegated session" })
       }
 
       await client.session.prompt({
@@ -97,10 +88,10 @@ export const createDelegateTaskTool = (
       })
       const messages = await client.session.messages({ path: { id: childSessionId } })
       const entries = (messages as { data?: Array<{ info?: { role?: string }; parts?: Array<{ type?: string; text?: string }> }> }).data ?? []
-      return {
+      return JSON.stringify({
         session_id: childSessionId,
         output: formatMessages(entries),
-      }
+      })
     },
-  }
+  })
 }
