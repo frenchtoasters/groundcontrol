@@ -227,3 +227,5 @@ export const Groundcontrol: Plugin = async ({ client, worktree }) => {
     "tool.execute.after": composeHook(hooksAfter),
   }
 }
+
+export default Groundcontrol
