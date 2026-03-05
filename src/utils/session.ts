@@ -27,3 +27,38 @@ export const formatMessageLines = (
   }
   return `## ${role}\n${textParts.join("\n\n")}`
 }
+
+export const isSessionIdle = async (
+  client: any,
+  sessionId?: string,
+): Promise<boolean> => {
+  if (!sessionId) return false
+  if (client.session.status) {
+    try {
+      const response = await client.session.status({ path: { id: sessionId } })
+      const status = (response as { data?: { status?: string } }).data?.status
+      if (status) {
+        return ["idle", "completed", "done"].includes(status)
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return false
+}
+
+export const getSessionStatusData = async (
+  client: any,
+  sessionId?: string,
+): Promise<{ id?: string; title?: string; parentID?: string; status?: string } | undefined> => {
+  if (!sessionId) return undefined
+  if (client.session.status) {
+    try {
+      const response = await client.session.status({ path: { id: sessionId } })
+      return (response as { data?: { id?: string; title?: string; parentID?: string; status?: string } }).data
+    } catch {
+      // ignore
+    }
+  }
+  return undefined
+}

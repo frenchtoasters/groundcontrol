@@ -2,18 +2,23 @@
 **Parent:** `../../AGENTS.md`
 
 ## Overview
-Tool implementations exposed to OpenCode (AST-grep, background tasks, delegation).
+Tool implementations exposed to OpenCode: AST-grep search/replace, background tasks, delegation.
 
 ## Structure
 ```
 tools/
 ├── index.ts          # Tool registration
-├── ast-grep/         # AST search/replace tools
+├── ast-grep/         # AST search/replace (6 files)
 │   ├── cli.ts        # Binary runner
 │   ├── downloader.ts # Binary download
-│   └── tools.ts      # ast_grep_search, ast_grep_replace
+│   ├── tools.ts      # ast_grep_search, ast_grep_replace
+│   ├── types.ts
+│   ├── constants.ts
+│   └── index.ts
 ├── background-task/  # background_task tool
+│   └── tools.ts
 └── delegate-task/    # Subagent delegation
+    └── tools.ts
 ```
 
 ## Key Tools
@@ -21,8 +26,8 @@ tools/
 |------|------|---------|
 | `ast_grep_search` | `ast-grep/tools.ts` | AST-aware code search |
 | `ast_grep_replace` | `ast-grep/tools.ts` | AST-aware code rewrite |
-| `background_task` | `background-task/` | Fire-and-forget tasks |
-| `delegate_task` | `delegate-task/` | Subagent delegation |
+| `background_task` | `background-task/tools.ts` | Fire-and-forget tasks |
+| `delegate_task` | `delegate-task/tools.ts` | Subagent delegation |
 
 ## Conventions
 - Tool names: snake_case (e.g., `background_task`)

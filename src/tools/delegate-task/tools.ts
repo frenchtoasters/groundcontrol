@@ -1,13 +1,14 @@
 import { tool, type ToolDefinition } from "@opencode-ai/plugin"
 import type { GroundcontrolConfig } from "../../config.js"
 import type { BackgroundTaskManager } from "../../background/manager.js"
-import { formatMessageLines } from "../../utils/session.js"
+import { formatMessageLines, isSessionIdle } from "../../utils/session.js"
 
 type PluginClient = {
   session: {
     create: (input: unknown) => Promise<unknown>
     prompt: (input: unknown) => Promise<unknown>
     messages: (input: unknown) => Promise<unknown>
+    status?: (input: unknown) => Promise<unknown>
   }
 }
 
@@ -86,6 +87,14 @@ export const createDelegateTaskTool = (
         path: { id: childSessionId },
         body: { content: prompt, agent },
       })
+
+      const maxPolls = 120 // 1 minute max (500ms * 120)
+      for (let poll = 0; poll < maxPolls; poll += 1) {
+        const isIdle = await isSessionIdle(client, childSessionId)
+        if (isIdle) break
+        await new Promise((resolve) => setTimeout(resolve, 500))
+      }
+
       const messages = await client.session.messages({ path: { id: childSessionId } })
       const entries = (messages as { data?: Array<{ info?: { role?: string }; parts?: Array<{ type?: string; text?: string }> }> }).data ?? []
       return JSON.stringify({

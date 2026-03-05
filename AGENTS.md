@@ -1,20 +1,20 @@
 # Groundcontrol Agent Guide
-**Generated:** 2026-02-19
-**Commit:** 2c779db9
+**Generated:** 2026-03-04
+**Commit:** d4901e7
 **Branch:** main
 
 ## Overview
-OpenCode plugin implementing AST-grep tools, background tasking, and comment/notification hooks in TypeScript ESM.
+OpenCode plugin: AST-grep tools, background tasking, comment/notification hooks. TypeScript ESM.
 
 ## Structure
 ```
 src/
 ├── index.ts          # Entry: registers tools/hooks
 ├── config.ts         # Config schema + defaults
-├── tools/            # Tool implementations
+├── tools/            # Tool implementations (4 subdirs)
 ├── hooks/            # Hook logic (6 subdirs)
 ├── background/       # Task polling + session mgmt
-├── utils/            # Shared utilities
+├── utils/            # Shared utilities (5 files)
 └── commands/         # Slash command handlers
 ```
 
@@ -25,6 +25,7 @@ src/
 | Add hook | `src/hooks/` + `src/index.ts` |
 | Config | `src/config.ts` |
 | Background tasks | `src/background/manager.ts` |
+| Utils | `src/utils/` |
 
 ## Conventions (Deviations Only)
 - **No semicolons** in source

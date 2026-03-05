@@ -1,3 +1,4 @@
+import { getSessionStatusData } from "../utils/session.js"
 import { spawnWithTimeout } from "../utils/spawn.js"
 import {
   getNotifySendPath,
@@ -8,10 +9,16 @@ import {
   getAplayPath,
 } from "./session-notification-utils.js"
 
+type PluginClient = {
+  session: {
+    status?: (input: { path: { id: string } }) => Promise<unknown>
+  }
+}
+
 type EventInput = {
   event: {
     type: string
-    properties?: { info?: { id?: string; title?: string; parentID?: string } }
+    properties?: { sessionID?: string; info?: { id?: string; title?: string; parentID?: string } }
   }
 }
 
@@ -79,7 +86,7 @@ const playSound = async (): Promise<void> => {
   }
 }
 
-export const createSessionNotification = (config: NotificationConfig) => {
+export const createSessionNotification = (config: NotificationConfig, client?: PluginClient) => {
   const timers = new Map<string, NodeJS.Timeout>()
 
   const clearTimer = (sessionId?: string) => {
@@ -93,11 +100,19 @@ export const createSessionNotification = (config: NotificationConfig) => {
 
   return async (input: EventInput): Promise<void> => {
     const { event } = input
-    const info = event.properties?.info
-    const sessionId = info?.id
+    const sessionId = event.properties?.sessionID ?? event.properties?.info?.id
 
     if (!sessionId) return
-    if (info?.parentID) return
+
+    let isChild = Boolean(event.properties?.info?.parentID)
+    if (!isChild && client) {
+      const statusData = await getSessionStatusData(client, sessionId)
+      if (statusData?.parentID) {
+        isChild = true
+      }
+    }
+
+    if (isChild) return
 
     if (event.type === "session.updated" || event.type === "message.updated") {
       clearTimer(sessionId)

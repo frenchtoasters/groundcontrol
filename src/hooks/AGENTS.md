@@ -8,12 +8,15 @@ Request hooks: comment checking, keyword detection, notifications, agent injecti
 ```
 hooks/
 ├── index.ts           # Hook registration
-├── comment-checker/   # Validates comments
-├── keyword-detector/  # Detects special keywords
-├── directory-agents-injector/  # Injects agent context
-├── delegate-task-retry/        # Retry logic
-├── task-resume-info/           # Resume state
-└── session-notification.ts     # Session notifications
+├── comment-checker/   # Validates comments (4 files)
+├── keyword-detector/  # Detects special keywords (4 files)
+├── directory-agents-injector/  # Injects agent context (2 files)
+├── delegate-task-retry/        # Retry logic (1 file)
+├── task-resume-info/           # Resume state (1 file)
+├── session-notification.ts     # Session notifications
+├── session-notification-utils.ts
+├── session-saver.ts
+└── config-handler.ts
 ```
 
 ## Hooks

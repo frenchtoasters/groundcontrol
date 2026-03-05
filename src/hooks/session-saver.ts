@@ -1,10 +1,11 @@
 import fs from "node:fs/promises"
 import path from "node:path"
-import { formatMessageLines } from "../utils/session.js"
+import { formatMessageLines, getSessionStatusData } from "../utils/session.js"
 
 type PluginClient = {
   session: {
     messages: (input: { path: { id: string } }) => Promise<unknown>
+    status?: (input: { path: { id: string } }) => Promise<unknown>
   }
   app: {
     log?: (input: { body: Record<string, unknown> }) => void
@@ -33,6 +34,7 @@ export const createSessionSaverHook = (options: SessionSaverOptions) => {
     event: {
       type: string
       properties?: {
+        sessionID?: string
         info?: {
           id?: string
           title?: string
@@ -45,8 +47,21 @@ export const createSessionSaverHook = (options: SessionSaverOptions) => {
       return
     }
 
-    const sessionId = input.event.properties?.info?.id
-    if (!sessionId || input.event.properties?.info?.parentID) {
+    const sessionId = input.event.properties?.sessionID ?? input.event.properties?.info?.id
+    if (!sessionId) {
+      return
+    }
+
+    // Check if it's a child session using the API if it's not present in the payload
+    let isChild = Boolean(input.event.properties?.info?.parentID)
+    if (!isChild) {
+      const statusData = await getSessionStatusData(client, sessionId)
+      if (statusData?.parentID) {
+        isChild = true
+      }
+    }
+
+    if (isChild) {
       return
     }
 

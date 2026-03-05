@@ -1,5 +1,5 @@
 import type { GroundcontrolConfig } from "../config.js"
-import { extractTextParts } from "../utils/session.js"
+import { extractTextParts, isSessionIdle } from "../utils/session.js"
 import type { BackgroundLaunchInput, BackgroundOutputResult, BackgroundTask } from "./types.js"
 
 type PluginClient = {
@@ -149,7 +149,7 @@ export class BackgroundTaskManager {
   private async pollTask(task: BackgroundTask): Promise<void> {
     for (let poll = 0; poll < this.maxPolls; poll += 1) {
       if (task.status !== "running") return
-      const isIdle = await this.isSessionIdle(task.sessionId)
+      const isIdle = await isSessionIdle(this.client, task.sessionId)
       if (isIdle) {
         task.status = "completed"
         task.completedAt = Date.now()
@@ -159,17 +159,5 @@ export class BackgroundTaskManager {
     }
     task.status = "completed"
     task.completedAt = Date.now()
-  }
-
-  private async isSessionIdle(sessionId?: string): Promise<boolean> {
-    if (!sessionId) return false
-    if (this.client.session.status) {
-      const response = await this.client.session.status({ path: { id: sessionId } })
-      const status = (response as { data?: { status?: string } }).data?.status
-      if (status) {
-        return ["idle", "completed", "done"].includes(status)
-      }
-    }
-    return false
   }
 }

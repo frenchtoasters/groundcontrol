@@ -204,7 +204,7 @@ export const Groundcontrol: Plugin = async ({ client, worktree }) => {
     eventHandlers.push(createSessionNotification({
       idleDelayMs: config.hooks.sessionNotification.idleDelayMs,
       sound: config.hooks.sessionNotification.sound,
-    }) as any)
+    }, client as any) as any)
   }
 
   eventHandlers.push(createSessionSaverHook({
