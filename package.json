@@ -4,15 +4,21 @@
   "description": "OpenCode plugin that enforces provider allowlists and auto-exports sessions.",
   "type": "module",
   "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
   },
   "files": [
     "dist",
     "README.md"
   ],
   "scripts": {
-    "build": "rm -rf dist && bun build src/index.ts --outdir dist --format esm --target node --external @opencode-ai/plugin --external @opencode-ai/sdk --external tar --external unzipper",
+    "build": "rm -rf dist && tsc && bun build src/index.ts --outdir dist --format esm --target node --external @opencode-ai/plugin --external @opencode-ai/sdk --external tar --external unzipper",
     "clean": "rm -rf dist"
   },
   "dependencies": {
